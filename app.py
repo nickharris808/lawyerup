@@ -66,7 +66,7 @@ with st.spinner('Processing your request...'):
     try:
         # Make the API call using the correct format
         response = openai.ChatCompletion.create(
-            model="gpt-4",
+            model="gpt-40-mini",
             messages=[
                 {"role": "system", "content": "You are an expert providing legal advice for personal injury cases."},
                 {"role": "user", "content": prompt}
