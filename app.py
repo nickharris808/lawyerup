@@ -1,5 +1,6 @@
 import streamlit as st
 import openai
+import datetime
 
 # Set your OpenAI API key
 openai.api_key = 'your-openai-api-key'
@@ -92,7 +93,7 @@ TOTAL_STEPS = 5
 # Main application
 def main():
     st.title("Personal Injury Case Evaluation")
-    st.progress((st.session_state['step'] - 1) * (100 // TOTAL_STEPS))
+    st.progress((st.session_state['step'] - 1) * (100 // (TOTAL_STEPS - 1)))
 
     if st.session_state['step'] == 1:
         personal_info()
@@ -112,13 +113,8 @@ def personal_info():
         phone_number = st.text_input("Phone Number", value=st.session_state['form_data'].get('phone_number', ''))
         email = st.text_input("Email Address", value=st.session_state['form_data'].get('email', ''))
 
-        col1, col2 = st.columns(2)
-        with col1:
-            back = st.form_submit_button("Back", on_click=prev_step)
-        with col2:
-            next = st.form_submit_button("Next")
-
-        if next:
+        next_clicked = st.form_submit_button("Next")
+        if next_clicked:
             st.session_state['form_data']['full_name'] = full_name
             st.session_state['form_data']['phone_number'] = phone_number
             st.session_state['form_data']['email'] = email
@@ -127,18 +123,26 @@ def personal_info():
 def incident_details():
     st.header("Step 2: Incident Details")
     with st.form(key='incident_details_form'):
-        incident_date = st.date_input("Date of Incident", value=st.session_state['form_data'].get('incident_date', None))
+        # Ensure a default date is set if no date is provided
+        if 'incident_date' in st.session_state['form_data']:
+            incident_date_default = datetime.datetime.strptime(st.session_state['form_data']['incident_date'], '%Y-%m-%d').date()
+        else:
+            incident_date_default = datetime.date.today()
+
+        incident_date = st.date_input("Date of Incident", value=incident_date_default)
         case_type_options = ["Motor Vehicle Accident", "Personal Injury", "Medical Malpractice", "Workplace Injury", "Product Liability", "Other"]
         case_type = st.selectbox("Case Type", case_type_options, index=st.session_state['form_data'].get('case_type_index', 0))
         incident_description = st.text_area("Short Description", value=st.session_state['form_data'].get('incident_description', ''), max_chars=500)
 
         col1, col2 = st.columns(2)
         with col1:
-            back = st.form_submit_button("Back", on_click=prev_step)
+            back_clicked = st.form_submit_button("Back")
         with col2:
-            next = st.form_submit_button("Next")
+            next_clicked = st.form_submit_button("Next")
 
-        if next:
+        if back_clicked:
+            prev_step()
+        elif next_clicked:
             st.session_state['form_data']['incident_date'] = incident_date.strftime("%Y-%m-%d")
             st.session_state['form_data']['case_type'] = case_type
             st.session_state['form_data']['incident_description'] = incident_description
@@ -159,11 +163,13 @@ def losses_and_damages():
 
         col1, col2 = st.columns(2)
         with col1:
-            back = st.form_submit_button("Back", on_click=prev_step)
+            back_clicked = st.form_submit_button("Back")
         with col2:
-            next = st.form_submit_button("Next")
+            next_clicked = st.form_submit_button("Next")
 
-        if next:
+        if back_clicked:
+            prev_step()
+        elif next_clicked:
             st.session_state['form_data']['medical_expenses'] = medical_expenses
             st.session_state['form_data']['future_medical_expenses'] = future_medical_expenses
             st.session_state['form_data']['lost_income'] = lost_income
@@ -227,11 +233,13 @@ def additional_info():
 
         col1, col2 = st.columns(2)
         with col1:
-            back = st.form_submit_button("Back", on_click=prev_step)
+            back_clicked = st.form_submit_button("Back")
         with col2:
-            next = st.form_submit_button("Next")
+            next_clicked = st.form_submit_button("Next")
 
-        if next:
+        if back_clicked:
+            prev_step()
+        elif next_clicked:
             st.session_state['form_data']['detailed_description'] = detailed_description
             next_step()
 
@@ -250,72 +258,4 @@ def review_and_submit():
     st.write("**Short Description:**", form_data['incident_description'])
 
     st.write("**Medical Expenses:** $", form_data['medical_expenses'])
-    st.write("**Future Medical Expenses:** $", form_data['future_medical_expenses'])
-    st.write("**Lost Income:** $", form_data['lost_income'])
-    st.write("**Future Lost Income:** $", form_data['future_lost_income'])
-    st.write("**Property Damage:** $", form_data['property_damage'])
-    st.write("**Pain and Suffering Multiplier:**", form_data['pain_suffering_multiplier'])
-
-    st.write("**Detailed Description:**", form_data['detailed_description'])
-
-    # Dynamic questions
-    case_type = form_data['case_type']
-    if case_type == 'Motor Vehicle Accident':
-        st.write("**Were you the driver or passenger?:**", form_data['driver_or_passenger'])
-        st.write("**Was another vehicle involved?:**", form_data['other_vehicle_involved'])
-    elif case_type == 'Personal Injury':
-        st.write("**Type of injury:**", form_data['injury_type'])
-        st.write("**Was the incident on public or private property?:**", form_data['property_type'])
-    elif case_type == 'Medical Malpractice':
-        st.write("**Type of malpractice:**", form_data['malpractice_type'])
-        st.write("**Did you sign any consent forms?:**", form_data['consent_forms'])
-    elif case_type == 'Workplace Injury':
-        st.write("**Were you on the clock when the injury occurred?:**", form_data['on_the_clock'])
-        st.write("**Did you report the injury to your employer?:**", form_data['reported_to_employer'])
-    elif case_type == 'Product Liability':
-        st.write("**Type of product involved:**", form_data['product_type'])
-        st.write("**Was there a recall on the product?:**", form_data['product_recall'])
-    elif case_type == 'Other':
-        st.write("**Specified case type:**", form_data['other_case_type'])
-        st.write("**Additional details:**", form_data['other_details'])
-
-    agree = st.checkbox('I agree to the Privacy Policy and Consent to Contact.')
-
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        back = st.button("Back", on_click=prev_step)
-    with col2:
-        submit = st.button("Submit")
-
-    if submit and agree:
-        # Generate the OpenAI prompt
-        prompt = generate_prompt(form_data)
-
-        # Call the OpenAI API
-        try:
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                temperature=1,
-                max_tokens=1500,
-                top_p=1,
-                frequency_penalty=0,
-                presence_penalty=0
-            )
-
-            # Display the results
-            st.success("Your case valuation is ready!")
-            st.header("Case Valuation")
-            st.write(response['choices'][0]['message']['content'])
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
-    elif submit and not agree:
-        st.warning("You must agree to the Privacy Policy and Consent to Contact before submitting.")
-
-if __name__ == "__main__":
-    main()
+    st.write("**Future Medical Expe
