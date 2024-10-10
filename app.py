@@ -1,7 +1,7 @@
 import streamlit as st
 import urllib.parse
 import openai
-import time
+import streamlit.components.v1 as components
 
 # Define default session values
 session_defaults = {
@@ -25,32 +25,40 @@ for key, default_value in session_defaults.items():
 # Retrieve and decode query parameters
 query_params = st.experimental_get_query_params()
 
-# Check if any query parameters are provided
-if not query_params:
-    st.write("Redirecting...")
-    time.sleep(2)
-    st.experimental_rerun('https://formulai.typeform.com/to/t2ufWPEJ')
+# Redirect if no query parameters are present
+if not any(query_params.values()):
+    components.html(
+        f"""
+        <script>
+            window.location.href = "https://formulai.typeform.com/to/t2ufWPEJ";
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
+    st.stop()
 
 # Update session state with query parameters if they exist
 for key in session_defaults.keys():
     if key in query_params:
         st.session_state[key] = urllib.parse.unquote(query_params.get(key, [session_defaults[key]])[0])
 
-# Build the prompt using session state values
+# Build the prompt using session state values with markdown syntax instruction
 prompt = f"""
 Give me an accurate estimation, the best argument, and the best next steps for my personal injury case with these relevant details:
 
-- Case Type: {st.session_state['q1']}
-- Medical Expenses ($): {st.session_state['q2']}
-- Future Medical Expenses ($): {st.session_state['q3']}
-- Short Description of Incident: {st.session_state['q4']}
-- Lost Income ($): {st.session_state['q5']}
-- Property Damage ($): {st.session_state['q6']}
-- Future Lost Income ($): {st.session_state['q7']}
-- Pain and Suffering Multiplier: {st.session_state['q8']}
-- Detailed Description: {st.session_state['q9']}
-- Full Name: {st.session_state['name']}
-Please only use Markdown for any text formatting. Do not include any LaTeX or math-based syntax.
+- **Case Type:** {st.session_state['q1']}
+- **Medical Expenses ($):** {st.session_state['q2']}
+- **Future Medical Expenses ($):** {st.session_state['q3']}
+- **Short Description of Incident:** {st.session_state['q4']}
+- **Lost Income ($):** {st.session_state['q5']}
+- **Property Damage ($):** {st.session_state['q6']}
+- **Future Lost Income ($):** {st.session_state['q7']}
+- **Pain and Suffering Multiplier:** {st.session_state['q8']}
+- **Detailed Description:** {st.session_state['q9']}
+- **Full Name:** {st.session_state['name']}
+
+Please ensure that all syntax is in markdown only; do not use any math or LaTeX formatting.
 """
 
 # Display a loading spinner while the API call is made
@@ -58,7 +66,7 @@ with st.spinner('Processing your request...'):
     try:
         # Make the API call using the correct format
         response = openai.ChatCompletion.create(
-            model="gpt-40-mini",
+            model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are an expert providing legal advice for personal injury cases."},
                 {"role": "user", "content": prompt}
