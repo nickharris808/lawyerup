@@ -1,6 +1,7 @@
 import streamlit as st
 import urllib.parse
 import openai
+import time
 
 # Define default session values
 session_defaults = {
@@ -24,6 +25,12 @@ for key, default_value in session_defaults.items():
 # Retrieve and decode query parameters
 query_params = st.experimental_get_query_params()
 
+# Check if any query parameters are provided
+if not query_params:
+    st.write("Redirecting...")
+    time.sleep(2)
+    st.experimental_rerun('https://formulai.typeform.com/to/t2ufWPEJ')
+
 # Update session state with query parameters if they exist
 for key in session_defaults.keys():
     if key in query_params:
@@ -43,6 +50,7 @@ Give me an accurate estimation, the best argument, and the best next steps for m
 - Pain and Suffering Multiplier: {st.session_state['q8']}
 - Detailed Description: {st.session_state['q9']}
 - Full Name: {st.session_state['name']}
+Please only use Markdown for any text formatting. Do not include any LaTeX or math-based syntax.
 """
 
 # Display a loading spinner while the API call is made
@@ -50,7 +58,7 @@ with st.spinner('Processing your request...'):
     try:
         # Make the API call using the correct format
         response = openai.ChatCompletion.create(
-            model="gpt-4",
+            model="gpt-40-mini",
             messages=[
                 {"role": "system", "content": "You are an expert providing legal advice for personal injury cases."},
                 {"role": "user", "content": prompt}
