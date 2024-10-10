@@ -13,201 +13,243 @@ You are an experienced personal injury attorney. Based on the following client i
 
 **Personal Information:**
 - Full Name: {form_data['full_name']}
-- Contact Information:
-  - Phone Number: {form_data['phone_number']}
-  - Email Address: {form_data['email']}
-- Address: {form_data['address']}
+- Phone Number: {form_data['phone_number']}
+- Email Address: {form_data['email']}
 - Date of Birth: {form_data['date_of_birth']}
 
 **Incident Details:**
 - Date of Incident: {form_data['incident_date']}
-- Location of Incident: {form_data['incident_location']}
+- Case Type: {form_data['case_type']}
 - Short Description: {form_data['incident_description']}
 
-**Case Type:** {form_data['case_type']}
-
 **Losses and Damages:**
-- Current Medical Expenses: ${form_data['current_medical_expenses']}
-- Future Medical Expenses: ${form_data['future_medical_expenses']}
-- Current Lost Wages: ${form_data['current_lost_wages']}
-- Future Lost Income: ${form_data['future_lost_income']}
-- Property Damage: ${form_data['property_damage']}
+- Medical Expenses: ${form_data['medical_expenses']}
+- Lost Income: ${form_data['lost_income']}
 - Pain and Suffering Multiplier: {form_data['pain_suffering_multiplier']}
 
 **Additional Information:**
 - Detailed Description: {form_data['detailed_description']}
-
 """
+
     # Add dynamic questions based on case type
-    if form_data['case_type'] == 'Personal Injury':
+    if form_data['case_type'] == 'Motor Vehicle Accident':
         prompt += f"""
 **Additional Questions:**
-- Were you at fault?: {form_data['at_fault']}
-- Did you receive a citation?: {form_data['citation_received']}
+- Were you the driver or passenger?: {form_data['driver_or_passenger']}
+- Was another vehicle involved?: {form_data['other_vehicle_involved']}
+"""
+    elif form_data['case_type'] == 'Personal Injury':
+        prompt += f"""
+**Additional Questions:**
+- Type of injury (e.g., slip and fall, dog bite): {form_data['injury_type']}
+- Was the incident on public or private property?: {form_data['property_type']}
 """
     elif form_data['case_type'] == 'Medical Malpractice':
         prompt += f"""
 **Additional Questions:**
-- Nature of Malpractice: {form_data['malpractice_nature']}
-- Was another provider involved?: {form_data['other_provider_involved']}
+- Type of malpractice (e.g., misdiagnosis, surgical error): {form_data['malpractice_type']}
+- Did you sign any consent forms?: {form_data['consent_forms']}
+"""
+    elif form_data['case_type'] == 'Workplace Injury':
+        prompt += f"""
+**Additional Questions:**
+- Were you on the clock when the injury occurred?: {form_data['on_the_clock']}
+- Did you report the injury to your employer?: {form_data['reported_to_employer']}
+"""
+    elif form_data['case_type'] == 'Product Liability':
+        prompt += f"""
+**Additional Questions:**
+- Type of product involved: {form_data['product_type']}
+- Was there a recall on the product?: {form_data['product_recall']}
+"""
+    elif form_data['case_type'] == 'Other':
+        prompt += f"""
+**Additional Questions:**
+- Please specify the case type: {form_data['other_case_type']}
+- Any additional details: {form_data['other_details']}
 """
     return prompt
 
 # Initialize session state for multi-step form
 if 'step' not in st.session_state:
-    st.session_state.step = 1
+    st.session_state['step'] = 1
 
-form_data = {}
+if 'form_data' not in st.session_state:
+    st.session_state['form_data'] = {}
+
+# Helper function to move to next step
+def next_step():
+    st.session_state['step'] += 1
 
 # Step 1: Personal Information
-if st.session_state.step == 1:
+if st.session_state['step'] == 1:
     st.title("Personal Injury Case Evaluation")
     st.header("Step 1: Personal Information")
-    st.progress(16)
+    st.progress(20)
 
     with st.form(key='personal_info_form'):
-        full_name = st.text_input("Full Name")
-        phone_number = st.text_input("Phone Number")
-        email = st.text_input("Email Address")
-        address = st.text_input("Address")
-        date_of_birth = st.date_input("Date of Birth")
+        full_name = st.text_input("Full Name", value=st.session_state['form_data'].get('full_name', ''))
+        phone_number = st.text_input("Phone Number", value=st.session_state['form_data'].get('phone_number', ''))
+        email = st.text_input("Email Address", value=st.session_state['form_data'].get('email', ''))
+        date_of_birth = st.date_input("Date of Birth", value=st.session_state['form_data'].get('date_of_birth', None))
 
         submit = st.form_submit_button("Next")
         if submit:
-            form_data['full_name'] = full_name
-            form_data['phone_number'] = phone_number
-            form_data['email'] = email
-            form_data['address'] = address
-            form_data['date_of_birth'] = date_of_birth.strftime("%Y-%m-%d")
-            st.session_state.update(form_data)
-            st.session_state.step = 2
-            st.experimental_rerun()
+            st.session_state['form_data']['full_name'] = full_name
+            st.session_state['form_data']['phone_number'] = phone_number
+            st.session_state['form_data']['email'] = email
+            st.session_state['form_data']['date_of_birth'] = date_of_birth.strftime("%Y-%m-%d")
+            next_step()
 
 # Step 2: Incident Details
-if st.session_state.step == 2:
+elif st.session_state['step'] == 2:
     st.header("Step 2: Incident Details")
-    st.progress(32)
+    st.progress(40)
 
     with st.form(key='incident_details_form'):
-        incident_date = st.date_input("Date of Incident")
-        incident_location = st.text_input("Location of Incident")
-        incident_description = st.text_area("Short Description", max_chars=500)
+        incident_date = st.date_input("Date of Incident", value=st.session_state['form_data'].get('incident_date', None))
+        case_type_options = ["Motor Vehicle Accident", "Personal Injury", "Medical Malpractice", "Workplace Injury", "Product Liability", "Other"]
+        case_type = st.selectbox("Case Type", case_type_options, index=st.session_state['form_data'].get('case_type_index', 0))
+        incident_description = st.text_area("Short Description", value=st.session_state['form_data'].get('incident_description', ''), max_chars=500)
 
         submit = st.form_submit_button("Next")
         if submit:
-            form_data['incident_date'] = incident_date.strftime("%Y-%m-%d")
-            form_data['incident_location'] = incident_location
-            form_data['incident_description'] = incident_description
-            st.session_state.update(form_data)
-            st.session_state.step = 3
-            st.experimental_rerun()
+            st.session_state['form_data']['incident_date'] = incident_date.strftime("%Y-%m-%d")
+            st.session_state['form_data']['case_type'] = case_type
+            st.session_state['form_data']['incident_description'] = incident_description
+            st.session_state['form_data']['case_type_index'] = case_type_options.index(case_type)
+            next_step()
 
-# Step 3: Case Type Selection
-if st.session_state.step == 3:
-    st.header("Step 3: Case Type Selection")
-    st.progress(48)
-
-    with st.form(key='case_type_form'):
-        case_type = st.selectbox("Case Type", ["Personal Injury", "Medical Malpractice", "Workplace Injury", "Product Liability", "Other"])
-        submit = st.form_submit_button("Next")
-        if submit:
-            form_data['case_type'] = case_type
-            st.session_state.update(form_data)
-            st.session_state.step = 4
-            st.experimental_rerun()
-
-# Step 4: Losses and Damages
-if st.session_state.step == 4:
-    st.header("Step 4: Losses and Damages")
-    st.progress(64)
+# Step 3: Losses and Damages
+elif st.session_state['step'] == 3:
+    st.header("Step 3: Losses and Damages")
+    st.progress(60)
 
     with st.form(key='losses_damages_form'):
-        current_medical_expenses = st.number_input("Current Medical Expenses", min_value=0.0, format="%.2f")
-        future_medical_expenses = st.number_input("Future Medical Expenses", min_value=0.0, format="%.2f")
-        current_lost_wages = st.number_input("Current Lost Wages", min_value=0.0, format="%.2f")
-        future_lost_income = st.number_input("Future Lost Income", min_value=0.0, format="%.2f")
-        property_damage = st.number_input("Property Damage", min_value=0.0, format="%.2f")
-        pain_suffering_multiplier = st.selectbox("Pain and Suffering Multiplier", [1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5])
+        medical_expenses = st.number_input("Medical Expenses", min_value=0.0, format="%.2f", value=st.session_state['form_data'].get('medical_expenses', 0.0))
+        lost_income = st.number_input("Lost Income", min_value=0.0, format="%.2f", value=st.session_state['form_data'].get('lost_income', 0.0))
+        multiplier_options = [1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
+        pain_suffering_multiplier = st.selectbox("Pain and Suffering Multiplier", multiplier_options, index=st.session_state['form_data'].get('pain_suffering_multiplier_index', 0))
 
         submit = st.form_submit_button("Next")
         if submit:
-            form_data['current_medical_expenses'] = current_medical_expenses
-            form_data['future_medical_expenses'] = future_medical_expenses
-            form_data['current_lost_wages'] = current_lost_wages
-            form_data['future_lost_income'] = future_lost_income
-            form_data['property_damage'] = property_damage
-            form_data['pain_suffering_multiplier'] = pain_suffering_multiplier
-            st.session_state.update(form_data)
-            st.session_state.step = 5
-            st.experimental_rerun()
+            st.session_state['form_data']['medical_expenses'] = medical_expenses
+            st.session_state['form_data']['lost_income'] = lost_income
+            st.session_state['form_data']['pain_suffering_multiplier'] = pain_suffering_multiplier
+            st.session_state['form_data']['pain_suffering_multiplier_index'] = multiplier_options.index(pain_suffering_multiplier)
+            next_step()
 
-# Step 5: Additional Information
-if st.session_state.step == 5:
-    st.header("Step 5: Additional Information")
+# Step 4: Additional Information and Dynamic Questions
+elif st.session_state['step'] == 4:
+    st.header("Step 4: Additional Information")
     st.progress(80)
 
     with st.form(key='additional_info_form'):
-        detailed_description = st.text_area("Detailed Description", max_chars=1000)
+        detailed_description = st.text_area("Detailed Description", value=st.session_state['form_data'].get('detailed_description', ''), max_chars=1000)
 
-        # Dynamic Questions
-        if st.session_state.case_type == 'Personal Injury':
-            at_fault = st.selectbox("Were you at fault?", ["Yes", "No"])
-            citation_received = st.selectbox("Did you receive a citation?", ["Yes", "No"])
-            form_data['at_fault'] = at_fault
-            form_data['citation_received'] = citation_received
+        # Dynamic Questions based on Case Type
+        case_type = st.session_state['form_data']['case_type']
 
-        elif st.session_state.case_type == 'Medical Malpractice':
-            malpractice_nature = st.selectbox("Nature of Malpractice", ["Misdiagnosis", "Surgical Error", "Medication Error", "Other"])
-            other_provider_involved = st.selectbox("Was another provider involved?", ["Yes", "No"])
-            form_data['malpractice_nature'] = malpractice_nature
-            form_data['other_provider_involved'] = other_provider_involved
+        if case_type == 'Motor Vehicle Accident':
+            driver_or_passenger_options = ["Driver", "Passenger"]
+            driver_or_passenger = st.selectbox("Were you the driver or passenger?", driver_or_passenger_options, index=st.session_state['form_data'].get('driver_or_passenger_index', 0))
+            other_vehicle_involved_options = ["Yes", "No"]
+            other_vehicle_involved = st.selectbox("Was another vehicle involved?", other_vehicle_involved_options, index=st.session_state['form_data'].get('other_vehicle_involved_index', 0))
+            st.session_state['form_data']['driver_or_passenger'] = driver_or_passenger
+            st.session_state['form_data']['driver_or_passenger_index'] = driver_or_passenger_options.index(driver_or_passenger)
+            st.session_state['form_data']['other_vehicle_involved'] = other_vehicle_involved
+            st.session_state['form_data']['other_vehicle_involved_index'] = other_vehicle_involved_options.index(other_vehicle_involved)
+        elif case_type == 'Personal Injury':
+            injury_type = st.text_input("Type of injury (e.g., slip and fall, dog bite)", value=st.session_state['form_data'].get('injury_type', ''))
+            property_type_options = ["Public", "Private"]
+            property_type = st.selectbox("Was the incident on public or private property?", property_type_options, index=st.session_state['form_data'].get('property_type_index', 0))
+            st.session_state['form_data']['injury_type'] = injury_type
+            st.session_state['form_data']['property_type'] = property_type
+            st.session_state['form_data']['property_type_index'] = property_type_options.index(property_type)
+        elif case_type == 'Medical Malpractice':
+            malpractice_type = st.text_input("Type of malpractice (e.g., misdiagnosis, surgical error)", value=st.session_state['form_data'].get('malpractice_type', ''))
+            consent_forms_options = ["Yes", "No"]
+            consent_forms = st.selectbox("Did you sign any consent forms?", consent_forms_options, index=st.session_state['form_data'].get('consent_forms_index', 0))
+            st.session_state['form_data']['malpractice_type'] = malpractice_type
+            st.session_state['form_data']['consent_forms'] = consent_forms
+            st.session_state['form_data']['consent_forms_index'] = consent_forms_options.index(consent_forms)
+        elif case_type == 'Workplace Injury':
+            on_the_clock_options = ["Yes", "No"]
+            on_the_clock = st.selectbox("Were you on the clock when the injury occurred?", on_the_clock_options, index=st.session_state['form_data'].get('on_the_clock_index', 0))
+            reported_to_employer_options = ["Yes", "No"]
+            reported_to_employer = st.selectbox("Did you report the injury to your employer?", reported_to_employer_options, index=st.session_state['form_data'].get('reported_to_employer_index', 0))
+            st.session_state['form_data']['on_the_clock'] = on_the_clock
+            st.session_state['form_data']['on_the_clock_index'] = on_the_clock_options.index(on_the_clock)
+            st.session_state['form_data']['reported_to_employer'] = reported_to_employer
+            st.session_state['form_data']['reported_to_employer_index'] = reported_to_employer_options.index(reported_to_employer)
+        elif case_type == 'Product Liability':
+            product_type = st.text_input("Type of product involved", value=st.session_state['form_data'].get('product_type', ''))
+            product_recall_options = ["Yes", "No"]
+            product_recall = st.selectbox("Was there a recall on the product?", product_recall_options, index=st.session_state['form_data'].get('product_recall_index', 0))
+            st.session_state['form_data']['product_type'] = product_type
+            st.session_state['form_data']['product_recall'] = product_recall
+            st.session_state['form_data']['product_recall_index'] = product_recall_options.index(product_recall)
+        elif case_type == 'Other':
+            other_case_type = st.text_input("Please specify the case type", value=st.session_state['form_data'].get('other_case_type', ''))
+            other_details = st.text_area("Any additional details", value=st.session_state['form_data'].get('other_details', ''), max_chars=500)
+            st.session_state['form_data']['other_case_type'] = other_case_type
+            st.session_state['form_data']['other_details'] = other_details
 
         submit = st.form_submit_button("Next")
         if submit:
-            form_data['detailed_description'] = detailed_description
-            st.session_state.update(form_data)
-            st.session_state.step = 6
-            st.experimental_rerun()
+            st.session_state['form_data']['detailed_description'] = detailed_description
+            next_step()
 
-# Step 6: Review & Submission
-if st.session_state.step == 6:
-    st.header("Step 6: Review & Submit")
+# Step 5: Review & Submission
+elif st.session_state['step'] == 5:
+    st.header("Step 5: Review & Submit")
     st.progress(100)
 
+    form_data = st.session_state['form_data']
+
     st.subheader("Please review your information before submission:")
-    st.write("**Full Name:**", st.session_state.full_name)
-    st.write("**Phone Number:**", st.session_state.phone_number)
-    st.write("**Email Address:**", st.session_state.email)
-    st.write("**Address:**", st.session_state.address)
-    st.write("**Date of Birth:**", st.session_state.date_of_birth)
 
-    st.write("**Date of Incident:**", st.session_state.incident_date)
-    st.write("**Location of Incident:**", st.session_state.incident_location)
-    st.write("**Short Description:**", st.session_state.incident_description)
+    st.write("**Full Name:**", form_data['full_name'])
+    st.write("**Phone Number:**", form_data['phone_number'])
+    st.write("**Email Address:**", form_data['email'])
+    st.write("**Date of Birth:**", form_data['date_of_birth'])
 
-    st.write("**Case Type:**", st.session_state.case_type)
+    st.write("**Date of Incident:**", form_data['incident_date'])
+    st.write("**Case Type:**", form_data['case_type'])
+    st.write("**Short Description:**", form_data['incident_description'])
 
-    st.write("**Current Medical Expenses:** $", st.session_state.current_medical_expenses)
-    st.write("**Future Medical Expenses:** $", st.session_state.future_medical_expenses)
-    st.write("**Current Lost Wages:** $", st.session_state.current_lost_wages)
-    st.write("**Future Lost Income:** $", st.session_state.future_lost_income)
-    st.write("**Property Damage:** $", st.session_state.property_damage)
-    st.write("**Pain and Suffering Multiplier:**", st.session_state.pain_suffering_multiplier)
+    st.write("**Medical Expenses:** $", form_data['medical_expenses'])
+    st.write("**Lost Income:** $", form_data['lost_income'])
+    st.write("**Pain and Suffering Multiplier:**", form_data['pain_suffering_multiplier'])
 
-    st.write("**Detailed Description:**", st.session_state.detailed_description)
+    st.write("**Detailed Description:**", form_data['detailed_description'])
 
-    if st.session_state.case_type == 'Personal Injury':
-        st.write("**Were you at fault?:**", st.session_state.at_fault)
-        st.write("**Did you receive a citation?:**", st.session_state.citation_received)
-    elif st.session_state.case_type == 'Medical Malpractice':
-        st.write("**Nature of Malpractice:**", st.session_state.malpractice_nature)
-        st.write("**Was another provider involved?:**", st.session_state.other_provider_involved)
+    # Dynamic questions
+    case_type = form_data['case_type']
+    if case_type == 'Motor Vehicle Accident':
+        st.write("**Were you the driver or passenger?:**", form_data['driver_or_passenger'])
+        st.write("**Was another vehicle involved?:**", form_data['other_vehicle_involved'])
+    elif case_type == 'Personal Injury':
+        st.write("**Type of injury:**", form_data['injury_type'])
+        st.write("**Was the incident on public or private property?:**", form_data['property_type'])
+    elif case_type == 'Medical Malpractice':
+        st.write("**Type of malpractice:**", form_data['malpractice_type'])
+        st.write("**Did you sign any consent forms?:**", form_data['consent_forms'])
+    elif case_type == 'Workplace Injury':
+        st.write("**Were you on the clock when the injury occurred?:**", form_data['on_the_clock'])
+        st.write("**Did you report the injury to your employer?:**", form_data['reported_to_employer'])
+    elif case_type == 'Product Liability':
+        st.write("**Type of product involved:**", form_data['product_type'])
+        st.write("**Was there a recall on the product?:**", form_data['product_recall'])
+    elif case_type == 'Other':
+        st.write("**Specified case type:**", form_data['other_case_type'])
+        st.write("**Additional details:**", form_data['other_details'])
 
     agree = st.checkbox('I agree to the Privacy Policy and Consent to Contact.')
 
     if st.button("Submit") and agree:
         # Generate the OpenAI prompt
-        prompt = generate_prompt(st.session_state)
+        prompt = generate_prompt(form_data)
 
         # Call the OpenAI API
         response = openai.ChatCompletion.create(
@@ -231,4 +273,3 @@ if st.session_state.step == 6:
         st.write(response['choices'][0]['message']['content'])
     elif not agree:
         st.warning("You must agree to the Privacy Policy and Consent to Contact before submitting.")
-
